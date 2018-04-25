@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/speps/go-hashids"
+	"github.com/armadainteractive/go-hashids"
 )
 
 func main() {
@@ -29,43 +29,47 @@ func main() {
 	flag.StringVar(&separator, `sep`, ",", `separator for integers`)
 	flag.Parse()
 
-	codec := hashids.NewWithData(&params)
-
-	args := os.Args[len(os.Args)-flag.NArg():]
-	if decode {
-		for _, arg := range args {
-			result, err := codec.DecodeInt64WithError(arg)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%s: %s\n", arg, err)
-			} else {
-				var str []byte
-				for _, x := range result {
-					if len(str) != 0 {
-						str = append(str, separator...)
-					}
-					str = strconv.AppendInt(str, x, 10)
-				}
-				fmt.Printf("%s: %s\n", arg, str)
-			}
-		}
+	codec, err := hashids.NewWithData(&params)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 	} else {
-	ARGS:
-		for _, arg := range args {
-			spl := strings.Split(arg, separator)
-			ints := make([]int64, len(spl))
-			var err error
-			for i, s := range spl {
-				ints[i], err = strconv.ParseInt(s, 0, 64)
+
+		args := os.Args[len(os.Args)-flag.NArg():]
+		if decode {
+			for _, arg := range args {
+				result, err := codec.DecodeInt64WithError(arg)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%s: %s\n", arg, err)
-					continue ARGS
+				} else {
+					var str []byte
+					for _, x := range result {
+						if len(str) != 0 {
+							str = append(str, separator...)
+						}
+						str = strconv.AppendInt(str, x, 10)
+					}
+					fmt.Printf("%s: %s\n", arg, str)
 				}
 			}
-			result, err := codec.EncodeInt64(ints)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%s: %s\n", arg, err)
-			} else {
-				fmt.Printf("%s: %v\n", arg, result)
+		} else {
+		ARGS:
+			for _, arg := range args {
+				spl := strings.Split(arg, separator)
+				ints := make([]int64, len(spl))
+				var err error
+				for i, s := range spl {
+					ints[i], err = strconv.ParseInt(s, 0, 64)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%s: %s\n", arg, err)
+						continue ARGS
+					}
+				}
+				result, err := codec.EncodeInt64(ints)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %s\n", arg, err)
+				} else {
+					fmt.Printf("%s: %v\n", arg, result)
+				}
 			}
 		}
 	}
